@@ -10,5 +10,6 @@ services:
       - ./src:/app/src
       - ./public:/app/public
       - ./templates:/app/templates
+      - ./i18n:/app/i18n
     ports:
       - 8079:8079
