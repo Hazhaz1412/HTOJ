@@ -1,6 +1,9 @@
 package main
 
 import (
+	"HTOJ/cache"
+	"HTOJ/database"
+	"HTOJ/database/migrations"
 	"HTOJ/i18n"
 	"HTOJ/templates"
 	"context"
@@ -13,6 +16,25 @@ import (
 )
 
 func main() {
+	// Connect to database
+	db, err := database.Connect()
+	if err != nil {
+		log.Fatalf("database connection failed: %v", err)
+	}
+	defer database.Close()
+
+	// Run migrations
+	if err := migrations.Migrate(db); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+
+	// Connect to Redis
+	_, err = cache.Connect()
+	if err != nil {
+		log.Fatalf("redis connection failed: %v", err)
+	}
+	defer cache.Close()
+
 	bundle, err := i18n.LoadDir("i18n", "en")
 	if err != nil {
 		log.Fatalf("load i18n: %v", err)

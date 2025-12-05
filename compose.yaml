@@ -1,8 +1,55 @@
 services:
+  postgres:
+    container_name: htoj-postgres
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: htoj
+      POSTGRES_PASSWORD: htoj123
+      POSTGRES_DB: htoj_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U htoj"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: htoj-redis
+    image: valkey/valkey:7-alpine
+    command: valkey-server --requirepass htoj123
+    volumes:
+      - redis_data:/data
+    ports:
+      - 6380:6379
+    healthcheck:
+      test: ["CMD", "valkey-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   htoj-dev:
     container_name: htoj-dev
     image: htoj-dev:latest
     build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: htoj
+      DB_PASSWORD: htoj123
+      DB_NAME: htoj_dev
+      DB_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: htoj123
+      REDIS_DB: 0
     volumes:
       - ./build.sh:/app/build.sh
       - ./.air.toml:/app/.air.toml
@@ -11,5 +58,11 @@ services:
       - ./public:/app/public
       - ./templates:/app/templates
       - ./i18n:/app/i18n
+      - ./database:/app/database
+      - ./cache:/app/cache
     ports:
       - 8079:8079
+
+volumes:
+  postgres_data:
+  redis_data:
